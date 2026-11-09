@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pelaporan Klinik - Kesehatan Kerja</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--ink:#17262B;--mut:#5B6B70;--bg:#F2F4F2;--card:#fff;--teal:#0F766E;--ochre:#B7791F;--line:#D8DEDB}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 20px;background:var(--ink);color:#fff}
+header h1{margin:0;font-size:1.1rem;font-weight:600}
+nav button,.btn{font:inherit;border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;border-radius:6px;cursor:pointer}
+nav button.on,.btn.p{background:var(--teal);border-color:var(--teal);color:#fff}
+header nav{display:flex;gap:8px}
+main{max-width:1000px;margin:0 auto;padding:20px}
+section{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px;margin-bottom:18px}
+h2{margin:0 0 12px;font-size:1.25rem}
+label{display:block;font-size:.9rem;color:var(--mut);margin-bottom:4px}
+input,select{font:inherit;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff}
+:focus-visible{outline:3px solid var(--ochre);outline-offset:2px}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi div{border-left:4px solid var(--teal);padding:4px 12px}
+.kpi b{display:block;font-size:1.6rem}.kpi small{color:var(--mut)}
+table{width:100%;border-collapse:collapse;font-size:.92rem}
+th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right}th:first-child,td:first-child{text-align:left}
+.wrap{overflow-x:auto}
+.err{color:#9B1C1C;margin:8px 0 0;min-height:1.2em}.ok{color:var(--teal)}
+#login{max-width:340px;margin:60px auto}
+.hide{display:none}
+</style>
+</head>
+<body>
+<header><h1>Pelaporan Klinik: Kesehatan Kerja</h1>
+  <nav id="nav" class="hide"><button id="tD" class="on">Dashboard</button><button id="tI">Input kunjungan</button><button id="out">Keluar</button></nav></header>
+<main>
+<section id="login"><h2>Masuk</h2>
+  <label for="u">Username</label><input id="u" autocomplete="username">
+  <label for="p" style="margin-top:10px">PIN</label><input id="p" type="password" autocomplete="current-password">
+  <p class="err" id="le" role="alert"></p><button class="btn p" id="go">Masuk</button></section>
+
+<div id="dash" class="hide">
+  <section><h2>10 penyakit terbanyak</h2>
+    <div class="row" style="margin-bottom:14px">
+      <div><label for="f">Dari bulan</label><input id="f" type="month"></div>
+      <div><label for="t">Sampai bulan</label><input id="t" type="month"></div>
+      <div><button class="btn p" id="show">Tampilkan</button></div></div>
+    <p class="err" id="de" role="alert"></p>
+    <div style="position:relative;height:380px"><canvas id="ch"></canvas></div></section>
+  <section><h2>Statistik kesehatan kerja (seluruh pekerja)</h2><div class="kpi" id="kpi"></div></section>
+  <section><h2>Per kelompok pekerja</h2><div class="wrap"><table id="tb"></table></div></section>
+</div>
+
+<section id="inp" class="hide"><h2>Catat kunjungan klinik</h2>
+  <div class="row">
+    <div><label for="kt">Tanggal</label><input id="kt" type="date"></div>
+    <div><label for="kn">NPK</label><input id="kn" list="npk" autocomplete="off"></div>
+    <div><label for="kj">Jenis</label><select id="kj"><option>PENYAKIT</option><option>KECELAKAAN</option><option>PAK</option><option>LAINNYA</option></select></div>
+    <div><label for="ki">Diagnosis (ICD-10)</label><input id="ki" list="icd" autocomplete="off"></div>
+    <div><label for="ks">Shift</label><select id="ks"><option value="">Tidak dicatat</option><option>SIANG</option><option>MALAM</option></select></div>
+  </div>
+  <datalist id="npk"></datalist><datalist id="icd"></datalist>
+  <p class="err" id="ie" role="alert"></p><button class="btn p" id="save">Simpan kunjungan</button></section>
+</main>
+<script>
+const API_URL = 'GANTI_DENGAN_URL_WEB_APP_ANDA';
+const $ = id => document.getElementById(id);
+let token = sessionStorage.getItem('tk'), role = sessionStorage.getItem('rl'), chart;
+
+async function api(act, extra) {
+  const r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(Object.assign({ act, token }, extra)) });
+  const j = await r.json();
+  if (!j.ok) { if (/Sesi berakhir/.test(j.error)) keluar(); throw new Error(j.error); }
+  return j;
+}
+function keluar() { sessionStorage.clear(); location.reload(); }
+function tampil() {
+  $('login').classList.add('hide'); $('nav').classList.remove('hide');
+  const hse = role === 'HSE' || role === 'ADMIN', kl = role === 'KLINIK' || role === 'ADMIN';
+  $('tD').classList.toggle('hide', !hse); $('tI').classList.toggle('hide', !kl);
+  if (hse) buka('D'); else buka('I');
+}
+function buka(w) {
+  $('dash').classList.toggle('hide', w !== 'D'); $('inp').classList.toggle('hide', w !== 'I');
+  $('tD').classList.toggle('on', w === 'D'); $('tI').classList.toggle('on', w === 'I');
+  if (w === 'I' && !$('icd').children.length) muatRef();
+}
+$('tD').onclick = () => buka('D'); $('tI').onclick = () => buka('I'); $('out').onclick = keluar;
+
+$('go').onclick = async () => {
+  $('le').textContent = '';
+  try {
+    const j = await api('login', { user: $('u').value.trim(), pin: $('p').value });
+    token = j.token; role = j.role; sessionStorage.setItem('tk', token); sessionStorage.setItem('rl', role); tampil();
+  } catch (e) { $('le').textContent = e.message; }
+};
+
+const bln = d => d.toISOString().slice(0, 7);
+const now = new Date(); $('t').value = bln(now); $('f').value = now.getFullYear() + '-01';
+const akhir = ym => { const [y, m] = ym.split('-').map(Number); return ym + '-' + String(new Date(y, m, 0).getDate()).padStart(2, '0'); };
+const fmt = v => v == null ? '-' : v.toLocaleString('id-ID');
+
+$('show').onclick = async () => {
+  $('de').textContent = '';
+  try {
+    const d = (await api('dashboard', { from: $('f').value + '-01', to: akhir($('t').value) })).data, a = d.stat.ALL || {};
+    if (chart) chart.destroy();
+    chart = new Chart($('ch'), { type: 'bar',
+      data: { labels: d.top10.map(x => x.kode + ' ' + x.nama), datasets: [{ label: 'Jumlah kasus', data: d.top10.map(x => x.kasus), backgroundColor: '#0F766E' }] },
+      options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: c => c.raw + ' kasus (' + d.top10[c.dataIndex].persen + '%)' } } } } });
+    const k = [['CMR', a.cmr, '% pekerja sakit'], ['MFR', a.mfr, 'per 1 juta jam'], ['SSR', a.ssr, 'hari hilang per spell'],
+      ['ASR', a.asr, 'per 1 juta jam'], ['FR PAK', a.fr_pak, 'per 1 juta pekerja'], ['Kelayakan kerja', a.kelayakan, '% pekerja layak']];
+    $('kpi').innerHTML = k.map(x => `<div><small>${x[0]}</small><b>${fmt(x[1])}</b><small>${x[2]}</small></div>`).join('');
+    $('tb').innerHTML = '<tr><th>Kelompok</th><th>Pekerja-bulan</th><th>Jam kerja</th><th>CMR</th><th>MFR</th><th>ASR</th></tr>' +
+      Object.keys(d.stat).filter(k => k !== 'ALL').map(k => { const s = d.stat[k];
+        return `<tr><td>${k}</td><td>${fmt(s.pekerja_bulan)}</td><td>${fmt(s.jam_kerja)}</td><td>${fmt(s.cmr)}</td><td>${fmt(s.mfr)}</td><td>${fmt(s.asr)}</td></tr>`; }).join('');
+  } catch (e) { $('de').textContent = e.message; }
+};
+
+async function muatRef() {
+  try {
+    const r = await api('refs');
+    $('icd').innerHTML = r.icd.map(x => `<option value="${x.kode}">${x.nama}</option>`).join('');
+    $('npk').innerHTML = r.npk.map(x => `<option value="${x}">`).join('');
+  } catch (e) { $('ie').textContent = e.message; }
+}
+$('kt').value = new Date().toISOString().slice(0, 10);
+$('save').onclick = async () => {
+  $('ie').className = 'err'; $('ie').textContent = '';
+  try {
+    await api('kunjungan_add', { data: { tanggal: $('kt').value, npk: $('kn').value.trim(), jenis: $('kj').value, icd10: $('ki').value.trim(), shift: $('ks').value } });
+    $('ie').className = 'err ok'; $('ie').textContent = 'Kunjungan tersimpan.'; $('kn').value = ''; $('ki').value = ''; $('kn').focus();
+  } catch (e) { $('ie').textContent = e.message; }
+};
+if (token) tampil();
+</script>
+</body>
+</html>
