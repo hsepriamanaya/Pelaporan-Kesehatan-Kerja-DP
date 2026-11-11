@@ -30,6 +30,11 @@ th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right}th:first-
 .err{color:#9B1C1C;margin:8px 0 0;min-height:1.2em}.ok{color:var(--teal)}
 #login{max-width:340px;margin:60px auto}
 .hide{display:none}
+.dx{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:4px 10px 8px;margin-top:6px}
+.dx h3{font-size:.9rem;color:var(--mut);margin:10px 0 2px;font-weight:600}
+.dx label{display:flex;gap:8px;align-items:center;color:var(--ink);font-size:.95rem;margin:0;padding:3px 0;cursor:pointer}
+.dx input{width:auto}
+.sel{color:var(--teal);min-height:1.5em;margin:6px 0 0}
 </style>
 </head>
 <body>
@@ -58,16 +63,21 @@ th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right}th:first-
     <div><label for="kt">Tanggal</label><input id="kt" type="date"></div>
     <div><label for="kn">NPK</label><input id="kn" list="npk" autocomplete="off"></div>
     <div><label for="kj">Jenis</label><select id="kj"><option>PENYAKIT</option><option>KECELAKAAN</option><option>PAK</option><option>LAINNYA</option></select></div>
-    <div><label for="ki">Diagnosis (ICD-10)</label><input id="ki" list="icd" autocomplete="off"></div>
     <div><label for="ks">Shift</label><select id="ks"><option value="">Tidak dicatat</option><option>SIANG</option><option>MALAM</option></select></div>
   </div>
-  <datalist id="npk"></datalist><datalist id="icd"></datalist>
+  <div style="margin-top:14px"><label for="kq">Diagnosis: centang semua yang sesuai</label>
+    <input id="kq" placeholder="Cari nama atau kode diagnosis" autocomplete="off">
+    <div id="dx" class="dx" role="group" aria-label="Daftar diagnosis"></div>
+    <p class="sel" id="sel" aria-live="polite"></p></div>
+  <datalist id="npk"></datalist>
   <p class="err" id="ie" role="alert"></p><button class="btn p" id="save">Simpan kunjungan</button></section>
 </main>
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzn3ZrnxGbj73uf3bJ4YYx_VdA3tTyp8TwcY-ZJeWovxIs58kmcCemfVQ5ElEzW8-57/exec';
 const $ = id => document.getElementById(id);
-let token = sessionStorage.getItem('tk'), role = sessionStorage.getItem('rl'), chart;
+let token = sessionStorage.getItem('tk'), role = sessionStorage.getItem('rl'), chart, ICD = [];
+const pilih = new Set();
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 async function api(act, extra) {
   const r = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' },
@@ -86,7 +96,7 @@ function tampil() {
 function buka(w) {
   $('dash').classList.toggle('hide', w !== 'D'); $('inp').classList.toggle('hide', w !== 'I');
   $('tD').classList.toggle('on', w === 'D'); $('tI').classList.toggle('on', w === 'I');
-  if (w === 'I' && !$('icd').children.length) muatRef();
+  if (w === 'I' && !ICD.length) muatRef();
 }
 $('tD').onclick = () => buka('D'); $('tI').onclick = () => buka('I'); $('out').onclick = keluar;
 
@@ -111,7 +121,7 @@ $('show').onclick = async () => {
     chart = new Chart($('ch'), { type: 'bar',
       data: { labels: d.top10.map(x => x.kode + ' ' + x.nama), datasets: [{ label: 'Jumlah kasus', data: d.top10.map(x => x.kasus), backgroundColor: '#0F766E' }] },
       options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false },
-        tooltip: { callbacks: { label: c => c.raw + ' kasus (' + d.top10[c.dataIndex].persen + '%)' } } } } });
+        tooltip: { callbacks: { label: c => c.raw + ' kasus (' + d.top10[c.dataIndex].persen + '% dari seluruh diagnosis)' } } } } });
     const k = [['CMR', a.cmr, '% pekerja sakit'], ['MFR', a.mfr, 'per 1 juta jam'], ['SSR', a.ssr, 'hari hilang per spell'],
       ['ASR', a.asr, 'per 1 juta jam'], ['FR PAK', a.fr_pak, 'per 1 juta pekerja'], ['Kelayakan kerja', a.kelayakan, '% pekerja layak']];
     $('kpi').innerHTML = k.map(x => `<div><small>${x[0]}</small><b>${fmt(x[1])}</b><small>${x[2]}</small></div>`).join('');
@@ -124,16 +134,28 @@ $('show').onclick = async () => {
 async function muatRef() {
   try {
     const r = await api('refs');
-    $('icd').innerHTML = r.icd.map(x => `<option value="${x.kode}">${x.nama}</option>`).join('');
+    ICD = r.icd; gambarDx();
     $('npk').innerHTML = r.npk.map(x => `<option value="${x}">`).join('');
   } catch (e) { $('ie').textContent = e.message; }
 }
+function ringkas() { $('sel').textContent = pilih.size ? 'Dipilih (' + pilih.size + '): ' + [...pilih].join(', ') : ''; }
+function gambarDx() {
+  const q = $('kq').value.trim().toLowerCase(), g = {};
+  ICD.filter(x => !q || (x.kode + ' ' + x.nama).toLowerCase().includes(q))
+    .forEach(x => (g[x.kategori || 'Lainnya'] = g[x.kategori || 'Lainnya'] || []).push(x));
+  $('dx').innerHTML = Object.keys(g).sort().map(k => `<h3>${esc(k)}</h3>` + g[k].map(x =>
+    `<label><input type="checkbox" value="${esc(x.kode)}"${pilih.has(String(x.kode)) ? ' checked' : ''}>${esc(x.kode)} ${esc(x.nama)}</label>`).join('')).join('')
+    || '<p>Tidak ada diagnosis yang cocok. Minta admin menambahkannya di sheet Ref_ICD10.</p>';
+  ringkas();
+}
+$('kq').oninput = gambarDx;
+$('dx').onchange = e => { if (e.target.type === 'checkbox') { e.target.checked ? pilih.add(e.target.value) : pilih.delete(e.target.value); ringkas(); } };
 $('kt').value = new Date().toISOString().slice(0, 10);
 $('save').onclick = async () => {
   $('ie').className = 'err'; $('ie').textContent = '';
   try {
-    await api('kunjungan_add', { data: { tanggal: $('kt').value, npk: $('kn').value.trim(), jenis: $('kj').value, icd10: $('ki').value.trim(), shift: $('ks').value } });
-    $('ie').className = 'err ok'; $('ie').textContent = 'Kunjungan tersimpan.'; $('kn').value = ''; $('ki').value = ''; $('kn').focus();
+    await api('kunjungan_add', { data: { tanggal: $('kt').value, npk: $('kn').value.trim(), jenis: $('kj').value, icd10: [...pilih], shift: $('ks').value } });
+    $('ie').className = 'err ok'; $('ie').textContent = 'Kunjungan tersimpan.'; $('kn').value = ''; pilih.clear(); $('kq').value = ''; gambarDx(); $('kn').focus();
   } catch (e) { $('ie').textContent = e.message; }
 };
 if (token) tampil();
