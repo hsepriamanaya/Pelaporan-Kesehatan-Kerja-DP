@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pelaporan Klinik - Kesehatan Kerja</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{--ink:#17262B;--mut:#5B6B70;--bg:#F2F4F2;--card:#fff;--teal:#0F766E;--ochre:#B7791F;--line:#D8DEDB}
 *{box-sizing:border-box}
@@ -35,11 +36,14 @@ th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right}th:first-
 .dx label{display:flex;gap:8px;align-items:center;color:var(--ink);font-size:.95rem;margin:0;padding:3px 0;cursor:pointer}
 .dx input{width:auto}
 .sel{color:var(--teal);min-height:1.5em;margin:6px 0 0}
+.warn{color:#8A5A12;margin:8px 0 0;min-height:1.2em}
+.hint{color:var(--mut);font-size:.9rem}
+.chk{display:flex;gap:8px;align-items:center;color:var(--ink);margin-top:12px}.chk input{width:auto}
 </style>
 </head>
 <body>
 <header><h1>Pelaporan Klinik: Kesehatan Kerja</h1>
-  <nav id="nav" class="hide"><button id="tD" class="on">Dashboard</button><button id="tI">Input kunjungan</button><button id="out">Keluar</button></nav></header>
+  <nav id="nav" class="hide"><button id="tD" class="on">Dashboard</button><button id="tI">Input kunjungan</button><button id="tR">Rekam lain</button><button id="tM">Impor data</button><button id="out">Keluar</button></nav></header>
 <main>
 <section id="login"><h2>Masuk</h2>
   <label for="u">Username</label><input id="u" autocomplete="username">
@@ -52,7 +56,7 @@ th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right}th:first-
       <div><label for="f">Dari bulan</label><input id="f" type="month"></div>
       <div><label for="t">Sampai bulan</label><input id="t" type="month"></div>
       <div><button class="btn p" id="show">Tampilkan</button></div></div>
-    <p class="err" id="de" role="alert"></p>
+    <p class="err" id="de" role="alert"></p><p class="warn" id="wn" role="status"></p>
     <div style="position:relative;height:380px"><canvas id="ch"></canvas></div></section>
   <section><h2>Statistik kesehatan kerja (seluruh pekerja)</h2><div class="kpi" id="kpi"></div></section>
   <section><h2>Per kelompok pekerja</h2><div class="wrap"><table id="tb"></table></div></section>
@@ -71,6 +75,19 @@ th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right}th:first-
     <p class="sel" id="sel" aria-live="polite"></p></div>
   <datalist id="npk"></datalist>
   <p class="err" id="ie" role="alert"></p><button class="btn p" id="save">Simpan kunjungan</button></section>
+<section id="rek" class="hide"><h2>Rekam kesehatan kerja lainnya</h2>
+  <div class="row"><div><label for="rj">Jenis rekam</label><select id="rj"></select></div></div>
+  <div class="row" id="rf" style="margin-top:12px"></div><datalist id="icdl"></datalist>
+  <p class="err" id="re" role="alert"></p><button class="btn p" id="rs">Simpan</button></section>
+
+<section id="imp" class="hide"><h2>Impor dan perbarui data</h2>
+  <div class="row"><div><label for="it">Jenis data</label><select id="it"><option value="Pekerja">Man power (pekerja)</option><option value="Ref_ICD10">Daftar diagnosis (ICD-10)</option></select></div>
+    <div><label for="if">File Excel atau CSV</label><input id="if" type="file" accept=".xlsx,.xls,.csv"></div></div>
+  <label class="chk" id="ik"><input type="checkbox" id="ikc"> Tandai pekerja yang tidak ada di file sebagai keluar (tanggal keluar hari ini)</label>
+  <p class="sel" id="ir" aria-live="polite"></p><p class="err" id="ie2" role="alert"></p>
+  <button class="btn" id="ic">Periksa file</button> <button class="btn p" id="ia" disabled>Terapkan</button>
+  <p class="hint">Periksa dulu: tidak ada yang disimpan sampai Anda menekan Terapkan. Kolom yang kosong di file tidak menimpa data yang sudah ada.
+  Untuk man power, tambahkan kolom POLA, ANCHOR, TGL MASUK, dan TGL KELUAR di Excel bila sudah tahu; yang belum diisi bisa dilengkapi langsung di sheet Pekerja.</p></section>
 </main>
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzn3ZrnxGbj73uf3bJ4YYx_VdA3tTyp8TwcY-ZJeWovxIs58kmcCemfVQ5ElEzW8-57/exec';
@@ -87,18 +104,19 @@ async function api(act, extra) {
   return j;
 }
 function keluar() { sessionStorage.clear(); location.reload(); }
+const TAB = { D: ['dash', 'tD'], I: ['inp', 'tI'], R: ['rek', 'tR'], M: ['imp', 'tM'] };
 function tampil() {
   $('login').classList.add('hide'); $('nav').classList.remove('hide');
   const hse = role === 'HSE' || role === 'ADMIN', kl = role === 'KLINIK' || role === 'ADMIN';
-  $('tD').classList.toggle('hide', !hse); $('tI').classList.toggle('hide', !kl);
-  if (hse) buka('D'); else buka('I');
+  $('tD').classList.toggle('hide', !hse); $('tI').classList.toggle('hide', !kl); $('tM').classList.toggle('hide', role !== 'ADMIN');
+  buka(hse ? 'D' : 'I');
 }
 function buka(w) {
-  $('dash').classList.toggle('hide', w !== 'D'); $('inp').classList.toggle('hide', w !== 'I');
-  $('tD').classList.toggle('on', w === 'D'); $('tI').classList.toggle('on', w === 'I');
-  if (w === 'I' && !ICD.length) muatRef();
+  Object.keys(TAB).forEach(k => { $(TAB[k][0]).classList.toggle('hide', k !== w); $(TAB[k][1]).classList.toggle('on', k === w); });
+  if ((w === 'I' || w === 'R') && !ICD.length) muatRef();
+  if (w === 'R') gambarRek();
 }
-$('tD').onclick = () => buka('D'); $('tI').onclick = () => buka('I'); $('out').onclick = keluar;
+Object.keys(TAB).forEach(k => $(TAB[k][1]).onclick = () => buka(k)); $('out').onclick = keluar;
 
 $('go').onclick = async () => {
   $('le').textContent = '';
@@ -124,6 +142,7 @@ $('show').onclick = async () => {
         tooltip: { callbacks: { label: c => c.raw + ' kasus (' + d.top10[c.dataIndex].persen + '% dari seluruh diagnosis)' } } } } });
     const k = [['CMR', a.cmr, '% pekerja sakit'], ['MFR', a.mfr, 'per 1 juta jam'], ['SSR', a.ssr, 'hari hilang per spell'],
       ['ASR', a.asr, 'per 1 juta jam'], ['FR PAK', a.fr_pak, 'per 1 juta pekerja'], ['Kelayakan kerja', a.kelayakan, '% pekerja layak']];
+    $('wn').textContent = d.belum_lengkap ? d.belum_lengkap + ' pekerja belum punya pola kerja atau tanggal siklus, jadi belum ikut dihitung. Lengkapi di sheet Pekerja.' : '';
     $('kpi').innerHTML = k.map(x => `<div><small>${x[0]}</small><b>${fmt(x[1])}</b><small>${x[2]}</small></div>`).join('');
     $('tb').innerHTML = '<tr><th>Kelompok</th><th>Pekerja-bulan</th><th>Jam kerja</th><th>CMR</th><th>MFR</th><th>ASR</th></tr>' +
       Object.keys(d.stat).filter(k => k !== 'ALL').map(k => { const s = d.stat[k];
@@ -134,14 +153,15 @@ $('show').onclick = async () => {
 async function muatRef() {
   try {
     const r = await api('refs');
-    ICD = r.icd; gambarDx();
+    ICD = r.icd; gambarDx(); $('icdl').innerHTML = ICD.map(x => `<option value="${esc(x.kode)}">${esc(x.nama)}</option>`).join('');
     $('npk').innerHTML = r.npk.map(x => `<option value="${x}">`).join('');
   } catch (e) { $('ie').textContent = e.message; }
 }
 function ringkas() { $('sel').textContent = pilih.size ? 'Dipilih (' + pilih.size + '): ' + [...pilih].join(', ') : ''; }
 function gambarDx() {
   const q = $('kq').value.trim().toLowerCase(), g = {};
-  ICD.filter(x => !q || (x.kode + ' ' + x.nama).toLowerCase().includes(q))
+  const kec = $('kj').value === 'KECELAKAAN', cedera = k => /^Cedera/.test(k || '');
+  ICD.filter(x => (!q || (x.kode + ' ' + x.nama).toLowerCase().includes(q)) && (!x.kategori || /^Lingkungan/.test(x.kategori) || kec === cedera(x.kategori)))
     .forEach(x => (g[x.kategori || 'Lainnya'] = g[x.kategori || 'Lainnya'] || []).push(x));
   $('dx').innerHTML = Object.keys(g).sort().map(k => `<h3>${esc(k)}</h3>` + g[k].map(x =>
     `<label><input type="checkbox" value="${esc(x.kode)}"${pilih.has(String(x.kode)) ? ' checked' : ''}>${esc(x.kode)} ${esc(x.nama)}</label>`).join('')).join('')
@@ -149,6 +169,7 @@ function gambarDx() {
   ringkas();
 }
 $('kq').oninput = gambarDx;
+$('kj').onchange = () => { pilih.clear(); gambarDx(); };
 $('dx').onchange = e => { if (e.target.type === 'checkbox') { e.target.checked ? pilih.add(e.target.value) : pilih.delete(e.target.value); ringkas(); } };
 $('kt').value = new Date().toISOString().slice(0, 10);
 $('save').onclick = async () => {
@@ -158,6 +179,77 @@ $('save').onclick = async () => {
     $('ie').className = 'err ok'; $('ie').textContent = 'Kunjungan tersimpan.'; $('kn').value = ''; pilih.clear(); $('kq').value = ''; gambarDx(); $('kn').focus();
   } catch (e) { $('ie').textContent = e.message; }
 };
+/* ---- Rekam lain (form generik) ---- */
+const PAR = ['Kebisingan', 'Debu', 'Pencahayaan', 'Suhu', 'Getaran', 'Lainnya'];
+const REK = {
+  Absensi_Sakit: { j: 'Surat sakit (absensi sakit)', r: ['KLINIK', 'ADMIN'], f: [['npk', 'NPK', 'npk'], ['mulai', 'Tanggal mulai', 'date'], ['akhir', 'Tanggal akhir', 'date'],
+    ['icd10', 'Diagnosis di surat', 'icd'], ['lanjutan', 'Perpanjangan penyakit yang sama?', 'sel', [['', 'Otomatis'], ['YA', 'Ya, sambungan'], ['TIDAK', 'Tidak, spell baru']]]] },
+  MCU: { j: 'Pemeriksaan kesehatan (MCU)', r: ['KLINIK', 'ADMIN'], f: [['npk', 'NPK', 'npk'], ['tanggal', 'Tanggal', 'date'],
+    ['jenis', 'Jenis', 'sel', ['AWAL', 'BERKALA', 'KHUSUS', 'AKHIR']], ['hasil', 'Hasil kelayakan', 'sel', ['LAYAK', 'LAYAK DENGAN CATATAN', 'TIDAK LAYAK']]] },
+  Cuti_Aktual: { j: 'Cuti tahunan atau izin', r: ['KLINIK', 'HSE', 'ADMIN'], f: [['npk', 'NPK', 'npk'], ['mulai', 'Tanggal mulai', 'date'], ['akhir', 'Tanggal akhir', 'date'], ['jenis', 'Jenis', 'sel', ['TAHUNAN', 'IZIN']]] },
+  Lingkungan_Kerja: { j: 'Pemeriksaan lingkungan kerja', r: ['HSE', 'ADMIN'], f: [['tanggal', 'Tanggal', 'date'], ['lokasi', 'Lokasi', 'text'], ['parameter', 'Parameter', 'sel', PAR],
+    ['hasil', 'Hasil ukur', 'text'], ['satuan', 'Satuan', 'text'], ['nab', 'Nilai ambang batas', 'text'], ['memenuhi', 'Memenuhi NAB?', 'sel', [['', '-'], ['YA', 'Ya'], ['TIDAK', 'Tidak']]]] },
+  Program_Biaya: { j: 'Program dan biaya kesehatan kerja', r: ['HSE', 'ADMIN'], f: [['bulan', 'Bulan', 'month'], ['program', 'Program', 'text'],
+    ['rencana_biaya', 'Rencana biaya (Rp)', 'num'], ['realisasi_biaya', 'Realisasi biaya (Rp)', 'num'], ['status', 'Status', 'sel', ['Rencana', 'Berjalan', 'Selesai']]] }
+};
+function gambarRek() {
+  $('rj').innerHTML = Object.keys(REK).filter(k => REK[k].r.includes(role)).map(k => `<option value="${k}">${REK[k].j}</option>`).join('');
+  isiRek();
+}
+function isiRek() {
+  const d = REK[$('rj').value]; if (!d) return;
+  $('rf').innerHTML = d.f.map(([k, l, t, o]) => {
+    const id = 'rf_' + k;
+    const i = t === 'sel' ? `<select id="${id}">${o.map(x => Array.isArray(x) ? `<option value="${esc(x[0])}">${esc(x[1])}</option>` : `<option>${esc(x)}</option>`).join('')}</select>`
+      : t === 'icd' ? `<input id="${id}" list="icdl" autocomplete="off">` : t === 'npk' ? `<input id="${id}" list="npk" autocomplete="off">`
+      : `<input id="${id}" type="${t === 'num' ? 'number' : t}">`;
+    return `<div><label for="${id}">${l}</label>${i}</div>`;
+  }).join('');
+}
+$('rj').onchange = isiRek;
+$('rs').onclick = async () => {
+  const d = REK[$('rj').value], data = {}; $('re').className = 'err'; $('re').textContent = '';
+  d.f.forEach(([k, , t]) => { const v = $('rf_' + k).value.trim(); data[k] = t === 'month' && v ? v + '-01' : v; });
+  try { await api('rekam_add', { tabel: $('rj').value, data }); $('re').className = 'err ok'; $('re').textContent = 'Tersimpan.'; isiRek(); }
+  catch (e) { $('re').textContent = e.message; }
+};
+
+/* ---- Impor data (man power, diagnosis) ---- */
+const ALIAS = {
+  Pekerja: { npk: ['BADGE ID', 'NPK', 'BADGE'], nik: ['NIK'], nama: ['COMPLETE NAME', 'NAMA'], status_kerja: ['EMPLOYMENT STATUS', 'STATUS'],
+    perusahaan: ['DIVISION', 'PERUSAHAAN'], departemen: ['DEPARTMENT', 'DEPARTEMEN'], jabatan: ['POSITION TITLE', 'JABATAN'],
+    kelompok_jabatan: ['POSITION GROUP - SMKP', 'KELOMPOK JABATAN'], pola: ['POLA'], anchor: ['ANCHOR', 'TANGGAL SIKLUS'],
+    tgl_masuk: ['TGL MASUK', 'TANGGAL MASUK'], tgl_keluar: ['TGL KELUAR', 'TANGGAL KELUAR'] },
+  Ref_ICD10: { kode: ['KODE', 'ICD10', 'ICD-10'], nama: ['NAMA', 'DIAGNOSIS'], kategori: ['KATEGORI'], asal: ['ASAL'] }
+};
+let IMP = null;
+const tgl = v => v instanceof Date ? v.getFullYear() + '-' + String(v.getMonth() + 1).padStart(2, '0') + '-' + String(v.getDate()).padStart(2, '0') : String(v == null ? '' : v).trim();
+async function bacaFile() {
+  const f = $('if').files[0]; if (!f) throw new Error('Pilih file dulu.');
+  const wb = XLSX.read(await f.arrayBuffer(), { type: 'array', cellDates: true }), jenis = $('it').value, al = ALIAS[jenis], kunci = jenis === 'Pekerja' ? 'npk' : 'kode', rows = [];
+  XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }).forEach(r => {
+    const h = {}; Object.keys(r).forEach(k => h[k.trim().toUpperCase()] = r[k]);
+    const o = {}; Object.keys(al).forEach(k => { const a = al[k].find(n => n in h); if (a) o[k] = tgl(h[a]); });
+    if (o[kunci]) rows.push(o);
+  });
+  if (!rows.length) throw new Error(jenis === 'Pekerja' ? 'Kolom BADGE ID tidak ditemukan atau kosong.' : 'Kolom KODE tidak ditemukan atau kosong.');
+  return rows;
+}
+async function imporJalan(dry) {
+  $('ie2').textContent = ''; $('ir').textContent = '';
+  try {
+    const rows = dry ? await bacaFile() : IMP; IMP = rows;
+    const r = await api('impor', { tabel: $('it').value, rows, dry, keluar: $('ikc').checked });
+    $('ir').textContent = (dry ? 'Hasil pemeriksaan (belum disimpan): ' : 'Tersimpan: ') + r.baru + ' baru, ' + r.berubah + ' berubah, ' + r.sama + ' sama'
+      + (r.tidak_ada ? '; ' + r.tidak_ada + (r.ditandai ? ' pekerja ditandai keluar' : ' tidak ada di file') : '')
+      + (r.tanpa_pola != null ? '. Pekerja aktif yang belum punya pola atau tanggal siklus: ' + r.tanpa_pola + '.' : '.');
+    $('ia').disabled = !dry;
+  } catch (e) { $('ie2').textContent = e.message; $('ia').disabled = true; }
+}
+$('ic').onclick = () => imporJalan(true);
+$('ia').onclick = () => imporJalan(false);
+$('if').onchange = () => { IMP = null; $('ia').disabled = true; $('ir').textContent = ''; };
+$('it').onchange = () => { $('ik').classList.toggle('hide', $('it').value !== 'Pekerja'); IMP = null; $('ia').disabled = true; };
 if (token) tampil();
 </script>
 </body>
