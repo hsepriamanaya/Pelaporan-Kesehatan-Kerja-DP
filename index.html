@@ -66,6 +66,9 @@ tbody tr:hover td{background:#F7FAF9}
 .dx label{display:flex;gap:10px;align-items:center;color:var(--ink);font-size:.92rem;font-weight:500;margin:0;padding:7px 10px;border-radius:8px;cursor:pointer}
 .dx label:hover{background:#EEF4F3}
 .dx label:has(input:checked){background:var(--mint);color:var(--tealD);font-weight:600}
+.tbl select,.tbl .btn{min-height:36px;padding:6px 10px;width:auto;font-size:.88rem}
+.tbl td{white-space:normal}
+.ya{color:var(--teal);font-weight:700}.tdk{color:#B7C3C0}
 .cari{position:relative}
 .sug{position:absolute;z-index:30;left:0;right:0;margin:6px 0 0;padding:6px;list-style:none;background:#fff;border:1px solid var(--line);border-radius:12px;max-height:280px;overflow:auto;box-shadow:0 16px 32px -12px rgba(18,38,43,.28)}
 .sug li{padding:9px 12px;border-radius:8px;cursor:pointer;font-weight:600}
@@ -81,6 +84,8 @@ tbody tr:hover td{background:#F7FAF9}
 #login .btn{width:100%;margin-top:18px}
 #inp>.btn,#rek>.btn,#imp>.btn,#inp .btn.p{margin-top:18px}
 #imp .btn+.btn{margin-left:8px}
+#akn .btn.p{margin-top:18px}
+#au td:nth-child(-n+3),#au th:nth-child(-n+3){text-align:left}
 @media(max-width:880px){
  .app{grid-template-columns:1fr}
  .side{height:auto;flex-direction:row;align-items:center;gap:8px;padding:10px 12px;overflow-x:auto;z-index:20}
@@ -102,6 +107,7 @@ tbody tr:hover td{background:#F7FAF9}
     <button id="tI"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11v6M9 14h6"/></svg>Input kunjungan</button>
     <button id="tR"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Rekam lain</button>
     <button id="tM"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>Impor data</button>
+    <button id="tA"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg>Akun</button>
   </nav>
   <div class="foot"><span id="who"></span><button id="out"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4"/><path d="M16 8l4 4-4 4M20 12H9"/></svg>Keluar</button></div>
 </aside>
@@ -158,13 +164,30 @@ tbody tr:hover td{background:#F7FAF9}
   <button class="btn" id="ic">Periksa file</button> <button class="btn p" id="ia" disabled>Terapkan</button>
   <p class="hint">Periksa dulu: tidak ada yang disimpan sampai Anda menekan Terapkan. Kolom yang kosong di file tidak menimpa data yang sudah ada.
   Untuk man power, tambahkan kolom POLA, ANCHOR, TGL MASUK, dan TGL KELUAR di Excel bila sudah tahu; yang belum diisi bisa dilengkapi langsung di sheet Pekerja.</p></section>
+<div id="akn" class="hide">
+  <section><h2>Kelola akun</h2><div class="wrap"><table id="au" class="tbl"></table></div>
+    <p class="err" id="ae" role="alert"></p>
+    <p class="hint" style="margin:12px 0 0">Perubahan peran dan status langsung berlaku. Akun yang sedang Anda pakai tidak bisa dinonaktifkan atau dihapus dari sini.</p></section>
+  <section><h2>Tambah akun</h2>
+    <div class="row"><div><label for="an">Username</label><input id="an" autocomplete="off"></div>
+      <div><label for="ana">Nama lengkap</label><input id="ana" autocomplete="off"></div>
+      <div><label for="ap">PIN (minimal 6 karakter)</label><input id="ap" type="password" autocomplete="new-password"></div>
+      <div><label for="ar">Peran</label><select id="ar"><option>KLINIK</option><option>HSE</option><option>ADMIN</option></select></div></div>
+    <button class="btn p" id="ab">Tambah akun</button></section>
+  <section><h2>Ganti PIN</h2>
+    <div class="row"><div><label for="rpu">Akun</label><select id="rpu"></select></div>
+      <div><label for="rpp">PIN baru (minimal 6 karakter)</label><input id="rpp" type="password" autocomplete="new-password"></div></div>
+    <button class="btn p" id="rpb">Simpan PIN baru</button></section>
+  <section><h2>Hak akses tiap peran</h2><div class="wrap"><table id="zm" class="tbl"></table></div>
+    <p class="hint" style="margin:12px 0 0">Untuk membuat peran baru atau mengubah hak akses, buka sheet <b>Peran</b> di Google Sheet: tambah baris dengan nama peran (huruf besar, tanpa spasi) dan beri tanda <b>YA</b> pada izin yang diberikan. Perubahan langsung berlaku. ADMIN selalu punya semua akses.</p></section>
+</div>
 </main>
 </div>
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzn3ZrnxGbj73uf3bJ4YYx_VdA3tTyp8TwcY-ZJeWovxIs58kmcCemfVQ5ElEzW8-57/exec';
 const $ = id => document.getElementById(id);
 if (window.Chart) { Chart.defaults.font.family = '"Plus Jakarta Sans","Segoe UI",system-ui,sans-serif'; Chart.defaults.color = '#4A5B60'; }
-let token = sessionStorage.getItem('tk'), role = sessionStorage.getItem('rl'), chart, ICD = [];
+let token = sessionStorage.getItem('tk'), role = sessionStorage.getItem('rl'), chart, ICD = [], IZ = new Set();
 const pilih = new Set();
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -176,18 +199,21 @@ async function api(act, extra) {
   return j;
 }
 function keluar() { sessionStorage.clear(); location.reload(); }
-const TAB = { D: ['dash', 'tD'], I: ['inp', 'tI'], R: ['rek', 'tR'], M: ['imp', 'tM'] };
+const TAB = { D: ['dash', 'tD'], I: ['inp', 'tI'], R: ['rek', 'tR'], M: ['imp', 'tM'], A: ['akn', 'tA'] };
 function tampil() {
   $('login').classList.add('hide'); $('nav').classList.remove('hide');
   $('who').textContent = { ADMIN: 'Administrator', HSE: 'HSE', KLINIK: 'Petugas klinik' }[role] || role;
-  const hse = role === 'HSE' || role === 'ADMIN', kl = role === 'KLINIK' || role === 'ADMIN';
-  $('tD').classList.toggle('hide', !hse); $('tI').classList.toggle('hide', !kl); $('tM').classList.toggle('hide', role !== 'ADMIN');
-  buka(hse ? 'D' : 'I');
+  const can = k => IZ.has(k);
+  $('tD').classList.toggle('hide', !can('dashboard')); $('tI').classList.toggle('hide', !can('kunjungan')); $('tR').classList.toggle('hide', !REKZ.some(can));
+  $('tM').classList.toggle('hide', !can('impor')); $('tA').classList.toggle('hide', !can('akun'));
+  const awal = ['D', 'I', 'R', 'M', 'A'].find(k => !$(TAB[k][1]).classList.contains('hide'));
+  if (awal) buka(awal); else { alert('Peran Anda belum diberi akses. Hubungi admin.'); keluar(); }
 }
 function buka(w) {
   Object.keys(TAB).forEach(k => { $(TAB[k][0]).classList.toggle('hide', k !== w); $(TAB[k][1]).classList.toggle('on', k === w); });
   if ((w === 'I' || w === 'R') && !ICD.length) muatRef();
   if (w === 'R') gambarRek();
+  if (w === 'A') muatAkun();
   if (w === 'D' && !chart) $('show').click();
 }
 Object.keys(TAB).forEach(k => $(TAB[k][1]).onclick = () => buka(k)); $('out').onclick = keluar;
@@ -196,7 +222,7 @@ $('go').onclick = async () => {
   $('le').textContent = '';
   try {
     const j = await api('login', { user: $('u').value.trim(), pin: $('p').value });
-    token = j.token; role = j.role; sessionStorage.setItem('tk', token); sessionStorage.setItem('rl', role); tampil();
+    token = j.token; role = j.role; sessionStorage.setItem('tk', token); sessionStorage.setItem('rl', role); await muatSaya(); tampil();
   } catch (e) { $('le').textContent = e.message; }
 };
 
@@ -302,18 +328,20 @@ pasangCari($('kn'));
 /* ---- Rekam lain (form generik) ---- */
 const PAR = ['Kebisingan', 'Debu', 'Pencahayaan', 'Suhu', 'Getaran', 'Lainnya'];
 const REK = {
-  Absensi_Sakit: { j: 'Surat sakit (absensi sakit)', r: ['KLINIK', 'ADMIN'], f: [['npk', 'NPK', 'npk'], ['mulai', 'Tanggal mulai', 'date'], ['akhir', 'Tanggal akhir', 'date'],
+  Absensi_Sakit: { j: 'Surat sakit (absensi sakit)', z: 'absensi_sakit', f: [['npk', 'NPK', 'npk'], ['mulai', 'Tanggal mulai', 'date'], ['akhir', 'Tanggal akhir', 'date'],
     ['icd10', 'Diagnosis di surat', 'icd'], ['lanjutan', 'Perpanjangan penyakit yang sama?', 'sel', [['', 'Otomatis'], ['YA', 'Ya, sambungan'], ['TIDAK', 'Tidak, spell baru']]]] },
-  MCU: { j: 'Pemeriksaan kesehatan (MCU)', r: ['KLINIK', 'ADMIN'], f: [['npk', 'NPK', 'npk'], ['tanggal', 'Tanggal', 'date'],
+  MCU: { j: 'Pemeriksaan kesehatan (MCU)', z: 'mcu', f: [['npk', 'NPK', 'npk'], ['tanggal', 'Tanggal', 'date'],
     ['jenis', 'Jenis', 'sel', ['AWAL', 'BERKALA', 'KHUSUS', 'AKHIR']], ['hasil', 'Hasil kelayakan', 'sel', ['LAYAK', 'LAYAK DENGAN CATATAN', 'TIDAK LAYAK']]] },
-  Cuti_Aktual: { j: 'Cuti tahunan atau izin', r: ['KLINIK', 'HSE', 'ADMIN'], f: [['npk', 'NPK', 'npk'], ['mulai', 'Tanggal mulai', 'date'], ['akhir', 'Tanggal akhir', 'date'], ['jenis', 'Jenis', 'sel', ['TAHUNAN', 'IZIN']]] },
-  Lingkungan_Kerja: { j: 'Pemeriksaan lingkungan kerja', r: ['HSE', 'ADMIN'], f: [['tanggal', 'Tanggal', 'date'], ['lokasi', 'Lokasi', 'text'], ['parameter', 'Parameter', 'sel', PAR],
+  Cuti_Aktual: { j: 'Cuti tahunan atau izin', z: 'cuti', f: [['npk', 'NPK', 'npk'], ['mulai', 'Tanggal mulai', 'date'], ['akhir', 'Tanggal akhir', 'date'], ['jenis', 'Jenis', 'sel', ['TAHUNAN', 'IZIN']]] },
+  Lingkungan_Kerja: { j: 'Pemeriksaan lingkungan kerja', z: 'lingkungan', f: [['tanggal', 'Tanggal', 'date'], ['lokasi', 'Lokasi', 'text'], ['parameter', 'Parameter', 'sel', PAR],
     ['hasil', 'Hasil ukur', 'text'], ['satuan', 'Satuan', 'text'], ['nab', 'Nilai ambang batas', 'text'], ['memenuhi', 'Memenuhi NAB?', 'sel', [['', '-'], ['YA', 'Ya'], ['TIDAK', 'Tidak']]]] },
-  Program_Biaya: { j: 'Program dan biaya kesehatan kerja', r: ['HSE', 'ADMIN'], f: [['bulan', 'Bulan', 'month'], ['program', 'Program', 'text'],
+  Program_Biaya: { j: 'Program dan biaya kesehatan kerja', z: 'program', f: [['bulan', 'Bulan', 'month'], ['program', 'Program', 'text'],
     ['rencana_biaya', 'Rencana biaya (Rp)', 'num'], ['realisasi_biaya', 'Realisasi biaya (Rp)', 'num'], ['status', 'Status', 'sel', ['Rencana', 'Berjalan', 'Selesai']]] }
 };
+const REKZ = ['absensi_sakit', 'mcu', 'cuti', 'lingkungan', 'program'];
+async function muatSaya() { const r = await api('saya'); IZ = new Set(r.izin); role = r.role; sessionStorage.setItem('rl', role); }
 function gambarRek() {
-  $('rj').innerHTML = Object.keys(REK).filter(k => REK[k].r.includes(role)).map(k => `<option value="${k}">${REK[k].j}</option>`).join('');
+  $('rj').innerHTML = Object.keys(REK).filter(k => IZ.has(REK[k].z)).map(k => `<option value="${k}">${REK[k].j}</option>`).join('');
   isiRek();
 }
 function isiRek() {
@@ -372,7 +400,34 @@ $('ic').onclick = () => imporJalan(true);
 $('ia').onclick = () => imporJalan(false);
 $('if').onchange = () => { IMP = null; $('ia').disabled = true; $('ir').textContent = ''; };
 $('it').onchange = () => { $('ik').classList.toggle('hide', $('it').value !== 'Pekerja'); IMP = null; $('ia').disabled = true; };
-if (token) tampil();
+/* ---- Kelola akun ---- */
+async function muatAkun() {
+  try {
+    const r = await api('akun', { op: 'list' });
+    $('au').innerHTML = '<tr><th>Username</th><th>Nama</th><th>Peran</th><th>Status</th><th>Tindakan</th></tr>' + r.users.map(u =>
+      `<tr><td>${esc(u.user)}</td><td>${esc(u.nama)}</td><td><select data-op="role" data-u="${esc(u.user)}" aria-label="Peran ${esc(u.user)}">${r.izin.peran.map(x => `<option${x === u.role ? ' selected' : ''}>${x}</option>`).join('')}</select></td>` +
+      `<td>${u.aktif ? 'Aktif' : 'Nonaktif'}</td><td><button class="btn" data-op="aktif" data-u="${esc(u.user)}" data-a="${u.aktif ? 0 : 1}">${u.aktif ? 'Nonaktifkan' : 'Aktifkan'}</button> <button class="btn" data-op="hapus" data-u="${esc(u.user)}">Hapus</button></td></tr>`).join('');
+    $('ar').innerHTML = r.izin.peran.map(p => `<option>${esc(p)}</option>`).join('');
+    $('rpu').innerHTML = r.users.map(u => `<option value="${esc(u.user)}">${esc(u.user)}${u.nama ? ' (' + esc(u.nama) + ')' : ''}</option>`).join('');
+    $('zm').innerHTML = '<tr><th>Fitur</th>' + r.izin.peran.map(p => `<th>${p}</th>`).join('') + '</tr>' + r.izin.baris.map(b =>
+      `<tr><td>${esc(b.fitur)}</td>${r.izin.peran.map(p => b.peran.includes(p) ? '<td class="ya">✓</td>' : '<td class="tdk">–</td>').join('')}</tr>`).join('');
+  } catch (e) { $('ae').className = 'err'; $('ae').textContent = e.message; }
+}
+async function aksiAkun(d, ok) {
+  $('ae').className = 'err'; $('ae').textContent = '';
+  try { await api('akun', d); if (ok) ok(); await muatAkun(); return true; }
+  catch (e) { $('ae').textContent = e.message; muatAkun(); return false; }
+}
+$('au').onchange = e => { const t = e.target; if (t.dataset.op === 'role') aksiAkun({ op: 'role', user: t.dataset.u, role: t.value }); };
+$('au').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.op === 'aktif') aksiAkun({ op: 'aktif', user: b.dataset.u, aktif: b.dataset.a === '1' });
+  else if (b.dataset.op === 'hapus' && confirm('Hapus akun ' + b.dataset.u + '? Tindakan ini tidak bisa dibatalkan.')) aksiAkun({ op: 'hapus', user: b.dataset.u });
+};
+$('ab').onclick = () => aksiAkun({ op: 'add', user: $('an').value.trim(), nama: $('ana').value.trim(), pin: $('ap').value, role: $('ar').value },
+  () => { $('an').value = ''; $('ana').value = ''; $('ap').value = ''; });
+$('rpb').onclick = () => aksiAkun({ op: 'pin', user: $('rpu').value, pin: $('rpp').value }, () => { $('rpp').value = ''; $('ae').className = 'err ok'; $('ae').textContent = 'PIN diganti.'; });
+if (token) muatSaya().then(tampil).catch(() => keluar());
 </script>
 </body>
 </html>
