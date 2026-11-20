@@ -3,53 +3,110 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0E2A2E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <title>Pelaporan Klinik - Kesehatan Kerja</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-:root{--ink:#17262B;--mut:#5B6B70;--bg:#F2F4F2;--card:#fff;--teal:#0F766E;--ochre:#B7791F;--line:#D8DEDB}
+:root{--ink:#12262B;--side:#0E2A2E;--teal:#0F766E;--tealD:#0B5C56;--mint:#E3F0EE;--ochre:#C58A1B;--bg:#F3F6F5;--card:#fff;--line:#DDE5E2;--mut:#5A6D72;--r:14px}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",system-ui,sans-serif}
-header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 20px;background:var(--ink);color:#fff}
-header h1{margin:0;font-size:1.1rem;font-weight:600}
-nav button,.btn{font:inherit;border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;border-radius:6px;cursor:pointer}
-nav button.on,.btn.p{background:var(--teal);border-color:var(--teal);color:#fff}
-header nav{display:flex;gap:8px}
-main{max-width:1000px;margin:0 auto;padding:20px}
-section{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px;margin-bottom:18px}
-h2{margin:0 0 12px;font-size:1.25rem}
-label{display:block;font-size:.9rem;color:var(--mut);margin-bottom:4px}
-input,select{font:inherit;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:#fff}
-:focus-visible{outline:3px solid var(--ochre);outline-offset:2px}
-.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:end}
-.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
-.kpi div{border-left:4px solid var(--teal);padding:4px 12px}
-.kpi b{display:block;font-size:1.6rem}.kpi small{color:var(--mut)}
-table{width:100%;border-collapse:collapse;font-size:.92rem}
-th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right}th:first-child,td:first-child{text-align:left}
-.wrap{overflow-x:auto}
-.err{color:#9B1C1C;margin:8px 0 0;min-height:1.2em}.ok{color:var(--teal)}
-#login{max-width:340px;margin:60px auto}
-.hide{display:none}
-.dx{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:4px 10px 8px;margin-top:6px}
-.dx h3{font-size:.9rem;color:var(--mut);margin:10px 0 2px;font-weight:600}
-.dx label{display:flex;gap:8px;align-items:center;color:var(--ink);font-size:.95rem;margin:0;padding:3px 0;cursor:pointer}
-.dx input{width:auto}
-.sel{color:var(--teal);min-height:1.5em;margin:6px 0 0}
-.warn{color:#8A5A12;margin:8px 0 0;min-height:1.2em}
-.hint{color:var(--mut);font-size:.9rem}
-.chk{display:flex;gap:8px;align-items:center;color:var(--ink);margin-top:12px}.chk input{width:auto}
+body{margin:0;background:radial-gradient(900px 420px at 85% -10%,#DCEEEA 0,transparent 70%),var(--bg);color:var(--ink);font:15.5px/1.55 "Plus Jakarta Sans","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.hide{display:none!important}
+.app{display:grid;grid-template-columns:264px minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:22px;padding:22px 16px;background:linear-gradient(180deg,#0E2A2E,#12383D);color:#CFE3E0}
+.side.hide+main{grid-column:1/-1;margin-inline:auto}
+.side svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.brand{display:flex;gap:12px;align-items:center;padding:0 6px}
+.brand svg{width:40px;height:40px;padding:9px;border-radius:12px;background:var(--ochre);color:#fff}
+.brand b{display:block;color:#fff;font-size:1.05rem;line-height:1.2}.brand small{color:#9FC3BE;font-size:.78rem}
+.menu{display:flex;flex-direction:column;gap:4px}
+.side button{display:flex;align-items:center;gap:12px;width:100%;padding:11px 12px;border:0;border-radius:10px;background:none;color:#CFE3E0;font:inherit;font-weight:500;cursor:pointer;text-align:left;transition:background .15s}
+.side button:hover{background:rgba(255,255,255,.07)}
+.side button.on{background:rgba(255,255,255,.12);color:#fff;box-shadow:inset 3px 0 0 var(--ochre)}
+.foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12)}
+.foot span{padding:0 12px;font-size:.85rem;color:#9FC3BE}
+main{padding:30px clamp(16px,3.2vw,44px) 60px;max-width:1200px;width:100%}
+section{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:22px 24px;margin-bottom:20px;box-shadow:0 1px 2px rgba(18,38,43,.04),0 8px 24px -12px rgba(18,38,43,.10)}
+h2{margin:0 0 14px;font-size:1.12rem;font-weight:700;letter-spacing:-.01em}
+label{display:block;font-size:.82rem;font-weight:600;color:var(--mut);margin-bottom:5px}
+input,select{font:inherit;width:100%;min-height:44px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);transition:border-color .15s}
+input:hover,select:hover{border-color:#B9C8C4}
+:focus-visible{outline:3px solid rgba(197,138,27,.6);outline-offset:2px}
+input[type=checkbox]{width:18px;min-height:0;height:18px;accent-color:var(--teal);flex:none}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;align-items:end}
+.btn{font:inherit;font-weight:600;padding:11px 20px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer;transition:all .15s}
+.btn:hover{border-color:var(--teal);color:var(--teal)}
+.btn.p{background:var(--teal);border-color:var(--teal);color:#fff;box-shadow:0 6px 14px -8px var(--teal)}
+.btn.p:hover{background:var(--tealD);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.kpi>div{padding:16px 18px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#fff,#F7FAF9)}
+.kpi small{display:block;color:var(--mut);font-size:.78rem}
+.kpi small:first-child{font-weight:700;color:var(--teal);font-size:.85rem}
+.kpi b{display:block;font-size:2rem;line-height:1.15;font-weight:800;letter-spacing:-.02em;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:.92rem;font-variant-numeric:tabular-nums}
+th{background:#F1F6F5;color:var(--mut);font-weight:700;font-size:.8rem}
+th,td{padding:11px 14px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+tr:last-child td{border-bottom:0}
+tbody tr:hover td{background:#F7FAF9}
+.err{margin:12px 0 0;padding:10px 14px;border-radius:10px;background:#FDECEC;color:#9B1C1C;font-weight:500}
+.err.ok{background:var(--mint);color:var(--tealD)}
+.warn{margin:12px 0 0;padding:10px 14px;border-radius:10px;background:#FFF4DC;color:#7A5410;font-weight:500}
+.err:empty,.warn:empty,.sel:empty{display:none}
+.sel{color:var(--tealD);font-weight:600;margin:10px 0 0}
+.hint{color:var(--mut);font-size:.88rem}
+.chk{display:flex;gap:10px;align-items:center;color:var(--ink);margin:16px 0 0;font-size:.95rem;font-weight:600;cursor:pointer}
+.dx{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:6px 14px 12px;margin-top:8px;background:#FBFCFC}
+.dx h3{font-size:.8rem;color:var(--teal);margin:14px 0 6px;font-weight:700}
+.dx .g{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 10px}
+.dx label{display:flex;gap:10px;align-items:center;color:var(--ink);font-size:.92rem;font-weight:500;margin:0;padding:7px 10px;border-radius:8px;cursor:pointer}
+.dx label:hover{background:#EEF4F3}
+.dx label:has(input:checked){background:var(--mint);color:var(--tealD);font-weight:600}
 .cari{position:relative}
-.sug{position:absolute;z-index:5;left:0;right:0;margin:2px 0 0;padding:0;list-style:none;background:#fff;border:1px solid var(--line);border-radius:6px;max-height:260px;overflow:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)}
-.sug li{padding:8px 10px;cursor:pointer}.sug li.on,.sug li:hover{background:#E3F0EE}.sug li.kosong{color:var(--mut);cursor:default}
-.sug small{display:block;color:var(--mut)}
+.sug{position:absolute;z-index:30;left:0;right:0;margin:6px 0 0;padding:6px;list-style:none;background:#fff;border:1px solid var(--line);border-radius:12px;max-height:280px;overflow:auto;box-shadow:0 16px 32px -12px rgba(18,38,43,.28)}
+.sug li{padding:9px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+.sug li.on,.sug li:hover{background:var(--mint)}
+.sug li.kosong{color:var(--mut);font-weight:500;cursor:default}
+.sug small{display:block;color:var(--mut);font-weight:400;font-size:.8rem}
+#login{max-width:420px;margin:9vh auto 0;padding:34px 32px}
+.lg{text-align:center;margin-bottom:8px}
+.lg svg{width:56px;height:56px;padding:14px;border-radius:16px;background:var(--side);color:#fff;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.lg h1{margin:12px 0 4px;font-size:1.4rem;letter-spacing:-.02em}
+.lg p{margin:0;color:var(--mut);font-size:.9rem}
+#login label{margin-top:14px}
+#login .btn{width:100%;margin-top:18px}
+#inp>.btn,#rek>.btn,#imp>.btn,#inp .btn.p{margin-top:18px}
+#imp .btn+.btn{margin-left:8px}
+@media(max-width:880px){
+ .app{grid-template-columns:1fr}
+ .side{height:auto;flex-direction:row;align-items:center;gap:8px;padding:10px 12px;overflow-x:auto;z-index:20}
+ .brand div,.foot span{display:none}
+ .menu{flex-direction:row}
+ .side button{width:auto;white-space:nowrap;padding:9px 12px}
+ .foot{margin:0 0 0 auto;border:0;padding:0;flex-direction:row}
+ main{padding:18px 14px 40px}
+ section{padding:18px 16px}
+}
 </style>
 </head>
 <body>
-<header><h1>Pelaporan Klinik: Kesehatan Kerja</h1>
-  <nav id="nav" class="hide"><button id="tD" class="on">Dashboard</button><button id="tI">Input kunjungan</button><button id="tR">Rekam lain</button><button id="tM">Impor data</button><button id="out">Keluar</button></nav></header>
+<div class="app">
+<aside class="side hide" id="nav">
+  <div class="brand"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M12 9v6M9 12h6"/></svg><div><b>Klinik K3</b><small>Kesehatan kerja · SMKP 4.3</small></div></div>
+  <nav class="menu" aria-label="Menu utama">
+    <button id="tD" class="on"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Dashboard</button>
+    <button id="tI"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11v6M9 14h6"/></svg>Input kunjungan</button>
+    <button id="tR"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Rekam lain</button>
+    <button id="tM"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>Impor data</button>
+  </nav>
+  <div class="foot"><span id="who"></span><button id="out"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4"/><path d="M16 8l4 4-4 4M20 12H9"/></svg>Keluar</button></div>
+</aside>
 <main>
-<section id="login"><h2>Masuk</h2>
+<section id="login"><div class="lg"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M12 9v6M9 12h6"/></svg><h1>Pelaporan Klinik</h1><p>Rekaman kesehatan kerja dan statistik penyakit pekerja</p></div>
   <label for="u">Username</label><input id="u" autocomplete="username">
   <label for="p" style="margin-top:10px">PIN</label><input id="p" type="password" autocomplete="current-password">
   <p class="err" id="le" role="alert"></p><button class="btn p" id="go">Masuk</button></section>
@@ -102,9 +159,11 @@ th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right}th:first-
   <p class="hint">Periksa dulu: tidak ada yang disimpan sampai Anda menekan Terapkan. Kolom yang kosong di file tidak menimpa data yang sudah ada.
   Untuk man power, tambahkan kolom POLA, ANCHOR, TGL MASUK, dan TGL KELUAR di Excel bila sudah tahu; yang belum diisi bisa dilengkapi langsung di sheet Pekerja.</p></section>
 </main>
+</div>
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzn3ZrnxGbj73uf3bJ4YYx_VdA3tTyp8TwcY-ZJeWovxIs58kmcCemfVQ5ElEzW8-57/exec';
 const $ = id => document.getElementById(id);
+if (window.Chart) { Chart.defaults.font.family = '"Plus Jakarta Sans","Segoe UI",system-ui,sans-serif'; Chart.defaults.color = '#4A5B60'; }
 let token = sessionStorage.getItem('tk'), role = sessionStorage.getItem('rl'), chart, ICD = [];
 const pilih = new Set();
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -120,6 +179,7 @@ function keluar() { sessionStorage.clear(); location.reload(); }
 const TAB = { D: ['dash', 'tD'], I: ['inp', 'tI'], R: ['rek', 'tR'], M: ['imp', 'tM'] };
 function tampil() {
   $('login').classList.add('hide'); $('nav').classList.remove('hide');
+  $('who').textContent = { ADMIN: 'Administrator', HSE: 'HSE', KLINIK: 'Petugas klinik' }[role] || role;
   const hse = role === 'HSE' || role === 'ADMIN', kl = role === 'KLINIK' || role === 'ADMIN';
   $('tD').classList.toggle('hide', !hse); $('tI').classList.toggle('hide', !kl); $('tM').classList.toggle('hide', role !== 'ADMIN');
   buka(hse ? 'D' : 'I');
@@ -128,6 +188,7 @@ function buka(w) {
   Object.keys(TAB).forEach(k => { $(TAB[k][0]).classList.toggle('hide', k !== w); $(TAB[k][1]).classList.toggle('on', k === w); });
   if ((w === 'I' || w === 'R') && !ICD.length) muatRef();
   if (w === 'R') gambarRek();
+  if (w === 'D' && !chart) $('show').click();
 }
 Object.keys(TAB).forEach(k => $(TAB[k][1]).onclick = () => buka(k)); $('out').onclick = keluar;
 
@@ -150,8 +211,8 @@ $('show').onclick = async () => {
     const d = (await api('dashboard', { from: $('f').value + '-01', to: akhir($('t').value) })).data, a = d.stat.ALL || {};
     if (chart) chart.destroy();
     chart = new Chart($('ch'), { type: 'bar',
-      data: { labels: d.top10.map(x => x.kode + ' ' + x.nama), datasets: [{ label: 'Jumlah kasus', data: d.top10.map(x => x.kasus), backgroundColor: '#0F766E' }] },
-      options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false },
+      data: { labels: d.top10.map(x => x.kode + ' ' + x.nama), datasets: [{ label: 'Jumlah kasus', data: d.top10.map(x => x.kasus), backgroundColor: '#0F766E', borderRadius: 6, barThickness: 22 }] },
+      options: { indexAxis: 'y', maintainAspectRatio: false, scales: { x: { grid: { color: '#E8EEEC' }, ticks: { precision: 0 } }, y: { grid: { display: false } } }, plugins: { legend: { display: false },
         tooltip: { callbacks: { label: c => c.raw + ' kasus (' + d.top10[c.dataIndex].persen + '% dari seluruh diagnosis)' } } } } });
     const k = [['CMR', a.cmr, '% pekerja sakit'], ['MFR', a.mfr, 'per 1 juta jam'], ['SSR', a.ssr, 'hari hilang per spell'],
       ['ASR', a.asr, 'per 1 juta jam'], ['FR PAK', a.fr_pak, 'per 1 juta pekerja'], ['Kelayakan kerja', a.kelayakan, '% pekerja layak']];
@@ -189,8 +250,8 @@ function gambarDx() {
   const kec = $('kj').value === 'KECELAKAAN', cedera = k => /^Cedera/.test(k || '');
   ICD.filter(x => (!q || (x.kode + ' ' + x.nama).toLowerCase().includes(q)) && (!x.kategori || /^Lingkungan/.test(x.kategori) || kec === cedera(x.kategori)))
     .forEach(x => (g[x.kategori || 'Lainnya'] = g[x.kategori || 'Lainnya'] || []).push(x));
-  $('dx').innerHTML = Object.keys(g).sort().map(k => `<h3>${esc(k)}</h3>` + g[k].map(x =>
-    `<label><input type="checkbox" value="${esc(x.kode)}"${pilih.has(String(x.kode)) ? ' checked' : ''}>${esc(x.kode)} ${esc(x.nama)}</label>`).join('')).join('')
+  $('dx').innerHTML = Object.keys(g).sort().map(k => `<h3>${esc(k)}</h3><div class="g">` + g[k].map(x =>
+    `<label><input type="checkbox" value="${esc(x.kode)}"${pilih.has(String(x.kode)) ? ' checked' : ''}>${esc(x.kode)} ${esc(x.nama)}</label>`).join('') + '</div>').join('')
     || '<p>Tidak ada diagnosis yang cocok. Minta admin menambahkannya di sheet Ref_ICD10.</p>';
   ringkas();
 }
