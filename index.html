@@ -63,6 +63,7 @@ th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right}th:first-
     <p class="err" id="de" role="alert"></p><p class="warn" id="wn" role="status"></p>
     <div style="position:relative;height:380px"><canvas id="ch"></canvas></div></section>
   <section><h2>Statistik kesehatan kerja (seluruh pekerja)</h2><div class="kpi" id="kpi"></div></section>
+  <section><h2>Hari hilang dan spell per penyakit</h2><p class="hint">Dari surat sakit yang diterbitkan. Perpanjangan dihitung ke penyakit pada surat pertamanya.</p><div class="wrap"><table id="tp"></table></div></section>
   <section><h2>Per kelompok pekerja</h2><div class="wrap"><table id="tb"></table></div></section>
 </div>
 
@@ -77,6 +78,14 @@ th,td{padding:8px;border-bottom:1px solid var(--line);text-align:right}th:first-
     <input id="kq" placeholder="Cari nama atau kode diagnosis" autocomplete="off">
     <div id="dx" class="dx" role="group" aria-label="Daftar diagnosis"></div>
     <p class="sel" id="sel" aria-live="polite"></p></div>
+  <label class="chk" id="skw"><input type="checkbox" id="sk"> Terbitkan surat sakit</label>
+  <div id="skf" class="row hide" style="margin-top:12px">
+    <div><label for="sm">Mulai istirahat</label><input id="sm" type="date"></div>
+    <div><label for="sa">Sampai tanggal</label><input id="sa" type="date"></div>
+    <div><label for="su">Penyebab utama surat</label><select id="su"></select></div>
+    <div><label for="sl">Perpanjangan penyakit yang sama?</label><select id="sl"><option value="">Otomatis</option><option value="YA">Ya, sambungan</option><option value="TIDAK">Tidak, spell baru</option></select></div>
+    <p class="hint" style="grid-column:1/-1;margin:0">Hari hilang dihitung otomatis dari jadwal kerja pekerja dan dicatat ke penyakit penyebab utama.</p>
+  </div>
   
   <p class="err" id="ie" role="alert"></p><button class="btn p" id="save">Simpan kunjungan</button></section>
 <section id="rek" class="hide"><h2>Rekam kesehatan kerja lainnya</h2>
@@ -148,6 +157,8 @@ $('show').onclick = async () => {
       ['ASR', a.asr, 'per 1 juta jam'], ['FR PAK', a.fr_pak, 'per 1 juta pekerja'], ['Kelayakan kerja', a.kelayakan, '% pekerja layak']];
     $('wn').textContent = d.belum_lengkap ? d.belum_lengkap + ' pekerja belum punya pola kerja atau tanggal siklus, jadi belum ikut dihitung. Lengkapi di sheet Pekerja.' : '';
     $('kpi').innerHTML = k.map(x => `<div><small>${x[0]}</small><b>${fmt(x[1])}</b><small>${x[2]}</small></div>`).join('');
+    $('tp').innerHTML = '<tr><th>Penyakit</th><th>Spell</th><th>Hari hilang</th><th>Hari per spell</th></tr>' + (d.per_penyakit.map(x =>
+      `<tr><td>${esc(x.kode)} ${esc(x.nama)}</td><td>${fmt(x.spell)}</td><td>${fmt(x.hari_hilang)}</td><td>${fmt(x.ssr)}</td></tr>`).join('') || '<tr><td colspan="4">Belum ada surat sakit pada periode ini.</td></tr>');
     $('tb').innerHTML = '<tr><th>Kelompok</th><th>Pekerja-bulan</th><th>Jam kerja</th><th>CMR</th><th>MFR</th><th>ASR</th></tr>' +
       Object.keys(d.stat).filter(k => k !== 'ALL').map(k => { const s = d.stat[k];
         return `<tr><td>${k}</td><td>${fmt(s.pekerja_bulan)}</td><td>${fmt(s.jam_kerja)}</td><td>${fmt(s.cmr)}</td><td>${fmt(s.mfr)}</td><td>${fmt(s.asr)}</td></tr>`; }).join('');
@@ -161,7 +172,18 @@ async function muatRef() {
     PEK = r.pekerja;
   } catch (e) { $('ie').textContent = e.message; }
 }
-function ringkas() { $('sel').textContent = pilih.size ? 'Dipilih (' + pilih.size + '): ' + [...pilih].join(', ') : ''; }
+function ringkas() {
+  $('sel').textContent = pilih.size ? 'Dipilih (' + pilih.size + '): ' + [...pilih].join(', ') : '';
+  const cur = $('su').value;
+  $('su').innerHTML = [...pilih].map(k => `<option value="${esc(k)}">${esc(k)} ${esc((ICD.find(x => String(x.kode) === k) || {}).nama || '')}</option>`).join('') || '<option value="">Pilih diagnosis dulu</option>';
+  if (pilih.has(cur)) $('su').value = cur;
+}
+function suratBoleh() {
+  const ok = ['PENYAKIT', 'PAK'].includes($('kj').value);
+  $('skw').classList.toggle('hide', !ok); if (!ok) $('sk').checked = false;
+  $('skf').classList.toggle('hide', !$('sk').checked);
+  if ($('sk').checked && !$('sm').value) $('sm').value = $('kt').value;
+}
 function gambarDx() {
   const q = $('kq').value.trim().toLowerCase(), g = {};
   const kec = $('kj').value === 'KECELAKAAN', cedera = k => /^Cedera/.test(k || '');
@@ -173,15 +195,18 @@ function gambarDx() {
   ringkas();
 }
 $('kq').oninput = gambarDx;
-$('kj').onchange = () => { pilih.clear(); gambarDx(); };
+$('kj').onchange = () => { pilih.clear(); gambarDx(); suratBoleh(); };
+$('sk').onchange = suratBoleh;
 $('dx').onchange = e => { if (e.target.type === 'checkbox') { e.target.checked ? pilih.add(e.target.value) : pilih.delete(e.target.value); ringkas(); } };
 $('kt').value = new Date().toISOString().slice(0, 10);
 $('save').onclick = async () => {
   $('ie').className = 'err'; $('ie').textContent = '';
   try {
     if (!npkDari($('kn'))) throw new Error('Pilih pekerja dari daftar (ketik nama atau NPK).');
-    await api('kunjungan_add', { data: { tanggal: $('kt').value, npk: npkDari($('kn')), jenis: $('kj').value, icd10: [...pilih], shift: $('ks').value } });
-    $('ie').className = 'err ok'; $('ie').textContent = 'Kunjungan tersimpan.'; $('kn').value = ''; $('kn').dataset.npk = ''; pilih.clear(); $('kq').value = ''; gambarDx(); $('kn').focus();
+    if ($('sk').checked && (!$('sm').value || !$('sa').value || !$('su').value)) throw new Error('Lengkapi tanggal surat sakit dan penyebab utamanya.');
+    await api('kunjungan_add', { data: { tanggal: $('kt').value, npk: npkDari($('kn')), jenis: $('kj').value, icd10: [...pilih], shift: $('ks').value,
+      surat: $('sk').checked ? { mulai: $('sm').value, akhir: $('sa').value, icd10: $('su').value, lanjutan: $('sl').value } : null } });
+    $('ie').className = 'err ok'; $('ie').textContent = 'Kunjungan tersimpan.'; $('kn').value = ''; $('kn').dataset.npk = ''; pilih.clear(); $('kq').value = ''; gambarDx(); $('sk').checked = false; $('sm').value = ''; $('sa').value = ''; suratBoleh(); $('kn').focus();
   } catch (e) { $('ie').textContent = e.message; }
 };
 /* ---- Cari pekerja berdasarkan nama atau NPK ---- */
